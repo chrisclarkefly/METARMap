@@ -7,11 +7,11 @@ import xml.etree.ElementTree as ET
 from neopixel import *
 import datetime
 import time
+from weather_utils import Condition
 
 # LED strip configuration:
 LED_COUNT      = 248     # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (18 uses PWM!).
-#LED_PIN        = 10      # GPIO pin connected to the pixels (10 uses SPI /dev/spidev0.0).
 LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
 LED_DMA        = 10      # DMA channel to use for generating signal (try 5)
 LED_BRIGHTNESS = 10      # Set to 0 for darkest and 255 for brightest
@@ -36,17 +36,17 @@ COLOR_LIGHTNING		= Color(255,255,255)		# White
 # Do you want the METARMap to be static to just show flight conditions, or do you also want blinking/fading based on current wind conditions
 ACTIVATE_WINDCONDITION_ANIMATION = False	# Set this to False for Static or True for animated wind conditions
 #Do you want the Map to Flash white for lightning in the area
-ACTIVATE_LIGHTNING_ANIMATION = False		# Set this to False for Static or True for animated Lightning
+ACTIVATE_LIGHTNING_ANIMATION = True		# Set this to False for Static or True for animated Lightning
 # Fade instead of blink
 FADE_INSTEAD_OF_BLINK	= False			# Set to False if you want blinking
 # Blinking Windspeed Threshold
-WIND_BLINK_THRESHOLD	= 15			# Knots of windspeed
+WIND_BLINK_THRESHOLD	= 25			# Knots of windspeed
 ALWAYS_BLINK_FOR_GUSTS	= False			# Always animate for Gusts (regardless of speeds)
 # Blinking Speed in seconds
 BLINK_SPEED		= 1.0			# Float in seconds, e.g. 0.5 for half a second
 # Total blinking time in seconds.
 # For example set this to 300 to keep blinking for 5 minutes if you plan to run the script every 5 minutes to fetch the updated weather
-BLINK_TOTALTIME_SECONDS	= 600
+BLINK_TOTALTIME_SECONDS	= 300
 
 pixels = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL, LED_STRIP)
 pixels.begin()
@@ -60,7 +60,7 @@ url = "https://aviationweather.gov/api/data/metar?format=xml&hoursBeforeNow=5&mo
 airport_list = [airportcode for airportcode in airports if airportcode != "NULL"]
 url = url + ",".join(airport_list)
 
-print (url)
+#print (url)
 content = urllib2.urlopen(url).read()
 
 root = ET.fromstring(content)
@@ -118,48 +118,48 @@ for metar in root.iter('METAR'):
 	conditionDict[stationId] = { "flightCategory" : flightCategory, "windDir": windDir, "windSpeed" : windSpeed, "windGustSpeed": windGustSpeed, "windGust": windGust, "vis": vis, "obs" : obs, "tempC" : tempC, "dewpointC" : dewpointC, "altimHg" : altimHg, "lightning": lightning, "skyConditions" : skyConditions, "obsTime": obsTime }
 
 print("Missing conditions for stations:", missingCondList)
-	
-windCycle = False
+print("Getting weather for " + str(len(airports)) + " airports")
 
 looplimit = int(round(BLINK_TOTALTIME_SECONDS / BLINK_SPEED)) if (ACTIVATE_WINDCONDITION_ANIMATION or ACTIVATE_LIGHTNING_ANIMATION) else 1
+windCycle = False
 
+while looplimit > 0:
+	i = 0
 
-i = 0
+	# Set light color and status for all entries in airports list
+	for airport in airports:
+		color = COLOR_CLEAR
+		conditions = conditionDict.get(airport, None)
+		windy = False
+		lightningConditions = False
+		fltCat = conditions.flightCategory if conditions is not None else "None"
+		if conditions != None:
+			windy = True if (ACTIVATE_WINDCONDITION_ANIMATION and windCycle == True and (conditions["windSpeed"] > WIND_BLINK_THRESHOLD or conditions["windGust"] == True)) else False
+			lightningConditions = True if (ACTIVATE_LIGHTNING_ANIMATION and windCycle == False and conditions.lightning == True) else False
 
-# Set light color and status for all entries in airports list
-for airport in airports:
-	color = COLOR_CLEAR
-	conditions = conditionDict.get(airport, None)
-	windy = False
-	lightningConditions = False
-	fltCat = conditions["flightCategory"] if conditions is not None else "None"
-	if conditions != None:
-		windy = True if (ACTIVATE_WINDCONDITION_ANIMATION and windCycle == True and (conditions["windSpeed"] > WIND_BLINK_THRESHOLD or conditions["windGust"] == True)) else False
-		lightningConditions = True if (ACTIVATE_LIGHTNING_ANIMATION and windCycle == False and conditions["lightning"] == True) else False
+			if conditions.flightCategory == "VFR":
+				color = COLOR_VFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_VFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
+				colorName = "Green"
+			elif conditions.flightCategory == "MVFR":
+				color = COLOR_MVFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_MVFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
+				colorName = "Blue"
+			elif conditions.flightCategory == "IFR":
+				color = COLOR_IFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_IFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
+				colorName = "Red"
+			elif conditions.flightCategory == "LIFR":
+				color = COLOR_LIFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_LIFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
+				colorName = "Magenta"
+			elif conditions.flightCategory == None:
+				color = COLOR_UNK if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_UNK_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
+				colorName = "Clear"
+			else:
+				color = COLOR_CLEAR
 
-		if conditions["flightCategory"] == "VFR":
-			color = COLOR_VFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_VFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
-			colorName = "Green"
-		elif conditions["flightCategory"] == "MVFR":
-			color = COLOR_MVFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_MVFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
-			colorName = "Blue"
-		elif conditions["flightCategory"] == "IFR":
-			color = COLOR_IFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_IFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
-			colorName = "Red"
-		elif conditions["flightCategory"] == "LIFR":
-			color = COLOR_LIFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_LIFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
-			colorName = "Magenta"
-		elif conditions["flightCategory"] == None:
-			color = COLOR_UNK if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_UNK_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
-			colorName = "Clear"
-		else:
-			color = COLOR_CLEAR
+		#print("Setting LED " + str(i) + " for " + airport + " to " + ("lightning " if lightningConditions else "") + ("windy " if windy else "") + (fltCat if conditions != None else "None") + " " + colorName)
+		pixels.setPixelColor(i, color)
+		i += 1
 
-	#print("Setting LED " + str(i) + " for " + airport + " to " + ("lightning " if lightningConditions else "") + ("windy " if windy else "") + (fltCat if conditions != None else "None") + " " + colorName)
-
-	pixels.setPixelColor(i, color)
 	pixels.show()
-	i += 1
 
 	# Switching between animation cycles
 	time.sleep(BLINK_SPEED)

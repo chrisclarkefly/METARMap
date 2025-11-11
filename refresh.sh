@@ -1,4 +1,3 @@
-#/usr/bin/sudo pkill -F /METARmaps/offpid.pid
 /usr/bin/sudo pkill -F /METARmaps/metarpid.pid
 echo 'refresh.sh:' $(date) >> /METARmaps/Logs/metar_refresh.log 2>&1
 
