@@ -7,7 +7,6 @@ import xml.etree.ElementTree as ET
 from neopixel import *
 import datetime
 import time
-from weather_utils import Condition
 
 # LED strip configuration:
 LED_COUNT      = 248     # Number of LED pixels.
@@ -40,7 +39,7 @@ ACTIVATE_LIGHTNING_ANIMATION = True		# Set this to False for Static or True for 
 # Fade instead of blink
 FADE_INSTEAD_OF_BLINK	= False			# Set to False if you want blinking
 # Blinking Windspeed Threshold
-WIND_BLINK_THRESHOLD	= 25			# Knots of windspeed
+WIND_BLINK_THRESHOLD	= 35			# Knots of windspeed
 ALWAYS_BLINK_FOR_GUSTS	= False			# Always animate for Gusts (regardless of speeds)
 # Blinking Speed in seconds
 BLINK_SPEED		= 1.0			# Float in seconds, e.g. 0.5 for half a second
@@ -132,24 +131,24 @@ while looplimit > 0:
 		conditions = conditionDict.get(airport, None)
 		windy = False
 		lightningConditions = False
-		fltCat = conditions.flightCategory if conditions is not None else "None"
+		fltCat = conditions["flightCategory"] if conditions is not None else "None"
 		if conditions != None:
 			windy = True if (ACTIVATE_WINDCONDITION_ANIMATION and windCycle == True and (conditions["windSpeed"] > WIND_BLINK_THRESHOLD or conditions["windGust"] == True)) else False
-			lightningConditions = True if (ACTIVATE_LIGHTNING_ANIMATION and windCycle == False and conditions.lightning == True) else False
+			lightningConditions = True if (ACTIVATE_LIGHTNING_ANIMATION and windCycle == False and conditions["lightning"] == True) else False
 
-			if conditions.flightCategory == "VFR":
+			if conditions["flightCategory"] == "VFR":
 				color = COLOR_VFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_VFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
 				colorName = "Green"
-			elif conditions.flightCategory == "MVFR":
+			elif conditions["flightCategory"] == "MVFR":
 				color = COLOR_MVFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_MVFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
 				colorName = "Blue"
-			elif conditions.flightCategory == "IFR":
+			elif conditions["flightCategory"] == "IFR":
 				color = COLOR_IFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_IFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
 				colorName = "Red"
-			elif conditions.flightCategory == "LIFR":
+			elif conditions["flightCategory"] == "LIFR":
 				color = COLOR_LIFR if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_LIFR_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
 				colorName = "Magenta"
-			elif conditions.flightCategory == None:
+			elif conditions["flightCategory"] == None:
 				color = COLOR_UNK if not (windy or lightningConditions) else COLOR_LIGHTNING if lightningConditions else (COLOR_UNK_FADE if FADE_INSTEAD_OF_BLINK else COLOR_CLEAR) if windy else COLOR_CLEAR
 				colorName = "Clear"
 			else:

@@ -44,6 +44,11 @@ def rainbowCycle(strip, wait_ms=2, iterations=5):
 		strip.show()
 		time.sleep(wait_ms/1000.0)
 
+def clearStrip(strip):
+	"""Clear all pixels on the strip."""
+	for i in range(LED_COUNT):
+		strip.setPixelColor(i, Color(0, 0, 0))
+	strip.show()
 
 # Main program logic follows:
 if __name__ == '__main__':
@@ -54,3 +59,5 @@ if __name__ == '__main__':
 	strip.begin()
 	print ('Rainbow animations.')
 	rainbowCycle(strip)
+	print("clearing strip")
+	clearStrip(strip)
