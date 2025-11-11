@@ -1,3 +1,8 @@
+## Connection
+ssid: silence
+ssh: pi@METARmap.local
+pass: metarmap
+
 ## Updates
 Forked from prueker/METARMap  
   

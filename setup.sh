@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /home/pi/METARMap
+cd /METARMaps
 
 sudo mkdir Logs
 cd Logs
@@ -8,7 +8,7 @@ sudo touch metar_start.log
 sudo chmod 777 metar_refresh.log
 sudo chmod 777 metar_start.log
 
-cd /home/pi/METARMap
+cd /METARMaps
 
 sudo chmod +x refresh.sh
 sudo chmod +x lightsoff.sh
